@@ -79,9 +79,10 @@ class Narrative:
         if not self.capital_flows:
             return 0.0
         
-        cutoff_time = datetime.now()
-        # Simple sum for now (would filter by time in production)
-        return sum(flow.net_flow for flow in self.capital_flows[-lookback_hours:])
+        # In production, would filter by time window
+        # For now, use the most recent flows up to lookback_hours count
+        recent_flows = self.capital_flows[-lookback_hours:]
+        return sum(flow.net_flow for flow in recent_flows)
     
     def get_flow_momentum(self) -> float:
         """Get the most recent flow momentum."""

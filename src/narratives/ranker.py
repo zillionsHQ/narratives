@@ -13,6 +13,18 @@ class NarrativeRanker:
     and lifecycle stage. Identifies opportunities before consensus pricing.
     """
     
+    # Constants for scoring
+    MAX_MEANINGFUL_FLOW = 100_000_000  # Maximum flow for normalization (100M)
+    
+    # Lifecycle stage scores (early stage = high alpha)
+    LIFECYCLE_SCORES = {
+        LifecycleStage.FORMATION: 1.0,  # Highest alpha potential
+        LifecycleStage.ACCELERATION: 0.8,  # Strong alpha potential
+        LifecycleStage.MATURITY: 0.4,  # Moderate opportunity
+        LifecycleStage.SATURATION: 0.1,  # Low alpha (consensus pricing)
+        LifecycleStage.DECAY: 0.0,  # No alpha (exit signal)
+    }
+    
     def __init__(self, current_regime: RegimeType = RegimeType.STABILITY):
         self.current_regime = current_regime
         
@@ -38,19 +50,12 @@ class NarrativeRanker:
             Alpha score from 0 to 100 (higher = better opportunity)
         """
         # 1. Lifecycle score (early stage = high alpha)
-        lifecycle_scores = {
-            LifecycleStage.FORMATION: 1.0,  # Highest alpha potential
-            LifecycleStage.ACCELERATION: 0.8,  # Strong alpha potential
-            LifecycleStage.MATURITY: 0.4,  # Moderate opportunity
-            LifecycleStage.SATURATION: 0.1,  # Low alpha (consensus pricing)
-            LifecycleStage.DECAY: 0.0,  # No alpha (exit signal)
-        }
-        lifecycle_score = lifecycle_scores.get(narrative.lifecycle_stage, 0.5)
+        lifecycle_score = self.LIFECYCLE_SCORES.get(narrative.lifecycle_stage, 0.5)
         
         # 2. Capital flow score (normalized)
         net_flow = narrative.get_net_capital_flow()
-        # Normalize to 0-1 scale (assuming max meaningful flow = 100M)
-        flow_score = min(max(net_flow / 100_000_000, 0.0), 1.0)
+        # Normalize to 0-1 scale using MAX_MEANINGFUL_FLOW
+        flow_score = min(max(net_flow / self.MAX_MEANINGFUL_FLOW, 0.0), 1.0)
         
         # 3. Regime alignment score
         regime_score = narrative.get_regime_score(self.current_regime)
@@ -145,20 +150,12 @@ class NarrativeRanker:
         Returns:
             Dictionary with score components and reasoning
         """
-        lifecycle_scores = {
-            LifecycleStage.FORMATION: 1.0,
-            LifecycleStage.ACCELERATION: 0.8,
-            LifecycleStage.MATURITY: 0.4,
-            LifecycleStage.SATURATION: 0.1,
-            LifecycleStage.DECAY: 0.0,
-        }
-        
         net_flow = narrative.get_net_capital_flow()
-        flow_score = min(max(net_flow / 100_000_000, 0.0), 1.0)
+        flow_score = min(max(net_flow / self.MAX_MEANINGFUL_FLOW, 0.0), 1.0)
         regime_score = narrative.get_regime_score(self.current_regime)
         momentum = narrative.get_flow_momentum()
         momentum_score = min(max((momentum + 1) / 2, 0.0), 1.0)
-        lifecycle_score = lifecycle_scores.get(narrative.lifecycle_stage, 0.5)
+        lifecycle_score = self.LIFECYCLE_SCORES.get(narrative.lifecycle_stage, 0.5)
         
         return {
             'alpha_score': narrative.alpha_score,
