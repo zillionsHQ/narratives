@@ -5,7 +5,7 @@ This package provides tools for detecting, analyzing, and ranking financial mark
 narratives based on capital flows, regime alignment, and lifecycle stages.
 """
 
-from .models import Narrative, CapitalFlow, RegimeType
+from .models import Narrative, CapitalFlow, RegimeType, LifecycleStage
 from .detector import NarrativeDetector
 from .ranker import NarrativeRanker
 
@@ -15,6 +15,7 @@ __all__ = [
     "Narrative",
     "CapitalFlow",
     "RegimeType",
+    "LifecycleStage",
     "NarrativeDetector",
     "NarrativeRanker",
 ]

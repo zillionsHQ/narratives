@@ -194,15 +194,43 @@ def main():
     print(f"Analyzing {len(narratives)} market narratives...")
     print()
     
-    # Update each narrative with detector
+    # Update each narrative with detector (with narrative-specific parameters)
+    update_params = {
+        "ai-revolution-2024": {
+            "capital_velocity": 0.7,
+            "attention_velocity": 0.5,
+            "time_active_hours": 12.0,
+        },
+        "energy-transition-2024": {
+            "capital_velocity": 0.6,
+            "attention_velocity": 0.4,
+            "time_active_hours": 720.0,  # 30 days
+        },
+        "mag7-tech-2024": {
+            "capital_velocity": -0.1,
+            "attention_velocity": 0.1,
+            "time_active_hours": 8760.0,  # 365 days
+        },
+        "crypto-winter-recovery-2024": {
+            "capital_velocity": 0.8,
+            "attention_velocity": 0.3,
+            "time_active_hours": 48.0,
+        },
+        "defensive-rotation-2024": {
+            "capital_velocity": 0.5,
+            "attention_velocity": 0.4,
+            "time_active_hours": 168.0,  # 7 days
+        },
+    }
+    
     for narrative in narratives:
         detector.add_narrative(narrative)
-        detector.update_narrative(
-            narrative,
-            capital_velocity=0.5,
-            attention_velocity=0.3,
-            time_active_hours=24.0,
-        )
+        params = update_params.get(narrative.id, {
+            "capital_velocity": 0.5,
+            "attention_velocity": 0.3,
+            "time_active_hours": 24.0,
+        })
+        detector.update_narrative(narrative, **params)
     
     # Rank narratives
     ranked_narratives = ranker.rank_narratives(narratives)
