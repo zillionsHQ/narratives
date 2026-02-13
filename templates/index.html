@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Narratives — Financial Alpha Discovery</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ── reset & base ──────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#252836;--border:#2e3140;
+  --text:#e4e4e7;--muted:#9ca3af;--accent:#3b82f6;--green:#10b981;
+  --red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;
+  --radius:12px;--shadow:0 4px 24px rgba(0,0,0,.35);
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+
+/* ── layout ────────────────────────────────────────────────── */
+.container{max-width:1320px;margin:0 auto;padding:0 24px}
+header{background:linear-gradient(135deg,#131520 0%,#1e2235 100%);border-bottom:1px solid var(--border);padding:28px 0}
+header .top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+header h1{font-size:1.6rem;font-weight:700;letter-spacing:-.02em}
+header h1 span{color:var(--accent)}
+.regime-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);padding:6px 16px;border-radius:20px;font-size:.82rem;font-weight:500;border:1px solid var(--border)}
+.regime-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.subtitle{color:var(--muted);font-size:.88rem;margin-top:6px}
+.timestamp{color:var(--muted);font-size:.75rem;margin-top:4px}
+
+/* ── stats row ─────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:28px 0}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.stat-card .label{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.stat-card .value{font-size:1.5rem;font-weight:700}
+.stat-card .sub{font-size:.78rem;color:var(--muted);margin-top:2px}
+
+/* ── section headings ──────────────────────────────────────── */
+.section-title{font-size:1.15rem;font-weight:600;margin:32px 0 16px;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:1.1rem}
+
+/* ── narrative cards ───────────────────────────────────────── */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:20px;margin-bottom:40px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden;cursor:pointer}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.card .rank{position:absolute;top:16px;right:16px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:700;font-size:.85rem;background:var(--surface2);border:1px solid var(--border)}
+.card .name{font-size:1.1rem;font-weight:600;margin-bottom:4px;padding-right:44px}
+.card .desc{font-size:.82rem;color:var(--muted);margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.metric{background:var(--surface2);border-radius:8px;padding:10px 12px}
+.metric .mlabel{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.metric .mvalue{font-size:1rem;font-weight:600;margin-top:2px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.tag{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:.7rem;color:var(--muted)}
+.assets{margin-top:8px;font-size:.78rem;color:var(--muted)}
+.assets span{color:var(--accent);font-weight:500}
+
+/* ── score bar ─────────────────────────────────────────────── */
+.score-bar-wrap{margin-top:14px}
+.score-bar-bg{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.score-bar{height:100%;border-radius:3px;transition:width .5s ease}
+.score-label{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:4px}
+
+/* ── chart ─────────────────────────────────────────────────── */
+.chart-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:40px}
+.chart-wrap{position:relative;height:300px}
+
+/* ── footer ────────────────────────────────────────────────── */
+footer{border-top:1px solid var(--border);padding:24px 0;text-align:center;color:var(--muted);font-size:.78rem;margin-top:40px}
+
+/* ── insights panel ────────────────────────────────────────── */
+.insights{background:linear-gradient(135deg,#162033 0%,#1a1d27 100%);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:40px}
+.insights h3{font-size:1rem;font-weight:600;margin-bottom:12px}
+.insights ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px}
+.insights li{font-size:.82rem;color:var(--muted);padding:6px 0;padding-left:20px;position:relative}
+.insights li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:700}
+
+/* ── responsive ────────────────────────────────────────────── */
+@media(max-width:640px){.cards{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="top">
+      <div>
+        <h1><span>Narratives</span> — Financial Alpha Discovery</h1>
+        <p class="subtitle">Regime-Aware Capital Flow Analysis &amp; Narrative Ranking</p>
+        <p class="timestamp">Last updated {{ now }}</p>
+      </div>
+      <div class="regime-badge"><span class="dot"></span>Regime: {{ current_regime | upper }}</div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ── stats ──────────────────────────────────────────────── -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Total Narratives</div>
+      <div class="value">{{ narratives|length }}</div>
+      <div class="sub">Actively tracked</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Early-Stage Opportunities</div>
+      <div class="value" style="color:var(--green)">{{ early_stage|length }}</div>
+      <div class="sub">Formation &amp; Acceleration</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Top Alpha Score</div>
+      <div class="value" style="color:var(--accent)">{{ narratives[0].alpha_score }}<small>/100</small></div>
+      <div class="sub">{{ narratives[0].name }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Current Regime</div>
+      <div class="value" style="color:var(--green)">{{ current_regime | upper }}</div>
+      <div class="sub">Market environment</div>
+    </div>
+  </div>
+
+  <!-- ── alpha chart ────────────────────────────────────────── -->
+  <div class="section-title"><span class="icon">📊</span> Alpha Score Comparison</div>
+  <div class="chart-container">
+    <div class="chart-wrap"><canvas id="alphaChart"></canvas></div>
+  </div>
+
+  <!-- ── early stage opportunities ─────────────────────────── -->
+  {% if early_stage %}
+  <div class="section-title"><span class="icon">🎯</span> Top Alpha Opportunities (Early Stage)</div>
+  <div class="cards">
+    {% for n in early_stage %}
+    <a href="/narrative/{{ n.id }}" class="card" style="border-left:3px solid {{ n.stage_color }}">
+      <div class="rank">#{{ n.rank }}</div>
+      <div class="name">{{ n.name }}</div>
+      <div class="desc">{{ n.description }}</div>
+      <span class="badge" style="background:{{ n.stage_color }}22;color:{{ n.stage_color }}">{{ n.stage_label }}</span>
+
+      <div class="score-bar-wrap">
+        <div class="score-label"><span>Alpha Score</span><span>{{ n.alpha_score }}/100</span></div>
+        <div class="score-bar-bg"><div class="score-bar" style="width:{{ n.alpha_score }}%;background:{{ n.stage_color }}"></div></div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="mlabel">Net Flow</div><div class="mvalue" style="color:{% if n.net_flow > 0 %}var(--green){% else %}var(--red){% endif %}">${{ "{:,.0f}".format(n.net_flow) }}</div></div>
+        <div class="metric"><div class="mlabel">Regime Fit</div><div class="mvalue">{{ "%.0f"|format(n.regime_score * 100) }}%</div></div>
+        <div class="metric"><div class="mlabel">Sentiment</div><div class="mvalue">{{ "%.0f"|format(n.sentiment_score * 100) }}%</div></div>
+        <div class="metric"><div class="mlabel">Attention</div><div class="mvalue">{{ "%.0f"|format(n.attention_score * 100) }}%</div></div>
+      </div>
+      <div class="assets">Assets: {% for a in n.related_assets %}<span>{{ a }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</div>
+      <div class="tags">{% for t in n.tags %}<span class="tag">{{ t }}</span>{% endfor %}</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── all narratives ────────────────────────────────────── -->
+  <div class="section-title"><span class="icon">📋</span> All Narratives (Ranked by Alpha Score)</div>
+  <div class="cards">
+    {% for n in narratives %}
+    <a href="/narrative/{{ n.id }}" class="card" style="border-left:3px solid {{ n.stage_color }}">
+      <div class="rank">#{{ n.rank }}</div>
+      <div class="name">{{ n.name }}</div>
+      <div class="desc">{{ n.description }}</div>
+      <span class="badge" style="background:{{ n.stage_color }}22;color:{{ n.stage_color }}">{{ n.stage_label }}</span>
+
+      <div class="score-bar-wrap">
+        <div class="score-label"><span>Alpha Score</span><span>{{ n.alpha_score }}/100</span></div>
+        <div class="score-bar-bg"><div class="score-bar" style="width:{{ n.alpha_score }}%;background:{{ n.stage_color }}"></div></div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="mlabel">Net Flow</div><div class="mvalue" style="color:{% if n.net_flow > 0 %}var(--green){% else %}var(--red){% endif %}">${{ "{:,.0f}".format(n.net_flow) }}</div></div>
+        <div class="metric"><div class="mlabel">Regime Fit</div><div class="mvalue">{{ "%.0f"|format(n.regime_score * 100) }}%</div></div>
+        <div class="metric"><div class="mlabel">Sentiment</div><div class="mvalue">{{ "%.0f"|format(n.sentiment_score * 100) }}%</div></div>
+        <div class="metric"><div class="mlabel">Attention</div><div class="mvalue">{{ "%.0f"|format(n.attention_score * 100) }}%</div></div>
+      </div>
+      <div class="assets">Assets: {% for a in n.related_assets %}<span>{{ a }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</div>
+      <div class="tags">{% for t in n.tags %}<span class="tag">{{ t }}</span>{% endfor %}</div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- ── insights panel ────────────────────────────────────── -->
+  <div class="insights">
+    <h3>Key Insights</h3>
+    <ul>
+      <li>Alpha exists in <strong>Formation</strong> and <strong>Acceleration</strong> stages — before consensus pricing</li>
+      <li><strong>Saturation</strong> and <strong>Decay</strong> stages indicate consensus pricing — limited alpha</li>
+      <li>Early capital flows signal conviction <em>before</em> headlines</li>
+      <li>Regime alignment increases the probability of narrative success</li>
+      <li>Investors who react to headlines enter too late</li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>
+  <div class="container">Narratives v0.1.0 — Financial Alpha Discovery Through Regime-Aware Capital Flow Analysis</div>
+</footer>
+
+<script>
+const DATA = {{ narratives | tojson }};
+
+// ── alpha comparison bar chart ──────────────────────────────
+(function(){
+  const ctx = document.getElementById('alphaChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DATA.map(d => d.name),
+      datasets: [
+        {
+          label: 'Alpha Score',
+          data: DATA.map(d => d.alpha_score),
+          backgroundColor: DATA.map(d => d.stage_color + 'cc'),
+          borderColor: DATA.map(d => d.stage_color),
+          borderWidth: 1,
+          borderRadius: 6,
+          barPercentage: 0.6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterLabel: function(ctx) {
+              const n = DATA[ctx.dataIndex];
+              return `Stage: ${n.stage_label}\nNet Flow: $${n.net_flow.toLocaleString()}`;
+            },
+          },
+          backgroundColor: '#252836',
+          borderColor: '#2e3140',
+          borderWidth: 1,
+          titleColor: '#e4e4e7',
+          bodyColor: '#9ca3af',
+          padding: 12,
+          cornerRadius: 8,
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: '#2e314033' },
+          ticks: { color: '#9ca3af', font: { size: 11 } },
+        },
+        y: {
+          beginAtZero: true,
+          max: 100,
+          grid: { color: '#2e314044' },
+          ticks: { color: '#9ca3af', font: { size: 11 }, callback: v => v + '/100' },
+        },
+      },
+    },
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,176 +1,220 @@
-# Narratives: Financial Market Narrative Detection System
+# Narratives — Financial Alpha Discovery
 
-A Python system for detecting, analyzing, and ranking financial market narratives to identify alpha opportunities before consensus pricing eliminates informational edge.
+A concept-validation tool that detects, scores, and ranks financial market **narratives** to surface alpha opportunities *before* consensus pricing eliminates the edge.
 
-## Overview
+> **Status:** Proof-of-concept / concept validation — not production software yet. The goal is to prove that a simple narrative-economics model can highlight investable themes earlier than traditional screens.
 
-Financial markets are economic regimes. Most investors enter too late because they react to headlines and price action instead of tracking capital flows and regime shifts. **Alpha exists in the early phase of narrative formation**, before capital coordination saturates and consensus pricing eliminates informational edge.
+---
 
-This system detects and ranks active narratives by measuring:
-- **Capital Flows**: Track where money is moving to identify conviction
-- **Regime Alignment**: Score narratives against current economic regime
-- **Lifecycle Stage**: Classify narratives from formation to saturation
+## What Problem Does This Solve?
 
-## Key Concepts
+Most investors react to **headlines and price action** — by the time CNBC is talking about a theme, everybody is already positioned, and the alpha is gone.
 
-### Lifecycle Stages
+This project flips the approach: instead of watching prices, it tracks **capital flows**, **economic regime context**, and **narrative lifecycle stage** to find themes while they are still forming — the phase where informational edge actually exists.
 
-Narratives evolve through distinct stages:
+### The Core Idea (Narrative Economics)
 
-1. **Formation** (🔥 HIGH ALPHA): Early stage, pre-consensus, low capital flows
-2. **Acceleration** (✅ GOOD ALPHA): Growing momentum, capital influx, rising attention
-3. **Maturity** (⚠️ MODERATE): Peak attention, maximum capital allocation
-4. **Saturation** (❌ LOW ALPHA): Consensus pricing, diminishing returns
-5. **Decay** (🚫 EXIT): Narrative breakdown, capital outflow
+Every market theme ("AI boom", "energy transition", "crypto recovery", …) goes through a lifecycle:
 
-### Economic Regimes
+| Stage | What Happens | Alpha Potential |
+|---|---|---|
+| **Formation** | Early movers, pre-consensus, small capital flows | 🔥 High |
+| **Acceleration** | Growing momentum, institutional inflows | ✅ Good |
+| **Maturity** | Peak attention, crowded positioning | ⚠️ Moderate |
+| **Saturation** | Everyone is in — consensus pricing | ❌ Low |
+| **Decay** | Capital outflows, narrative breaking down | 🚫 Exit |
 
-The system considers six regime types:
-- **Expansion**: Growth, rising markets
-- **Recession**: Contraction, risk-off
-- **Inflation**: Rising prices, monetary tightening
-- **Deflation**: Falling prices, deleveraging
-- **Volatility**: High uncertainty, regime transitions
-- **Stability**: Low volatility, established trends
+The system scores each narrative on a 0-100 **Alpha Score** using four weighted signals:
 
-### Alpha Scoring
+- **Lifecycle Stage (40%)** — earlier = higher score
+- **Capital Flows (30%)** — net inflows signal conviction
+- **Regime Alignment (20%)** — does the narrative fit the current economic regime (expansion, recession, inflation, …)?
+- **Flow Momentum (10%)** — accelerating flows = growing conviction
 
-The system calculates an alpha score (0-100) based on:
-- **Lifecycle Stage (40%)**: Early stage = higher alpha potential
-- **Capital Flows (30%)**: Net flows indicate conviction
-- **Regime Alignment (20%)**: Fit with current regime
-- **Flow Momentum (10%)**: Acceleration shows growing conviction
+---
 
-## Installation
+## See It in Action (Web Dashboard)
+
+The fastest way to understand what this does is to **run the web dashboard**. It ships with built-in example data so you can explore immediately — no API keys or external data needed.
+
+### Prerequisites
+
+You need **Python 3.8+** installed. Check with:
 
 ```bash
+python3 --version
+```
+
+### Step-by-step
+
+```bash
+# 1. Clone the repo (skip if you already have it)
+git clone https://github.com/zillionsHQ/narratives.git
+cd narratives
+
+# 2. (Recommended) Create a virtual environment
+python3 -m venv venv
+source venv/bin/activate        # On Windows: venv\Scripts\activate
+
+# 3. Install the project and its dependencies
 pip install -e .
+pip install flask               # needed for the web dashboard
+
+# 4. Start the web server
+python app.py
 ```
 
-For development:
-```bash
-pip install -e ".[dev]"
+You should see output like:
+
+```
+ * Running on http://0.0.0.0:5000
 ```
 
-## Quick Start
+**Open your browser** and go to **http://localhost:5000**. You will see:
 
-```python
-from datetime import datetime
-from narratives import (
-    Narrative,
-    CapitalFlow,
-    RegimeType,
-    LifecycleStage,
-    NarrativeDetector,
-    NarrativeRanker,
-)
+- A **dashboard** showing all tracked narratives ranked by alpha score
+- A **bar chart** comparing alpha scores side by side
+- Cards for each narrative showing lifecycle stage, capital flows, regime fit, sentiment, and related assets
+- Click any narrative card to see its **detail page** with full breakdown
 
-# Initialize detector and ranker
-detector = NarrativeDetector()
-ranker = NarrativeRanker()
+> **Tip (Codespaces / dev containers):** If you're running inside GitHub Codespaces or a dev container, the port will be forwarded automatically — look for the popup or check the "Ports" tab.
 
-# Set current market regime
-detector.set_current_regime(RegimeType.EXPANSION)
-ranker.set_current_regime(RegimeType.EXPANSION)
+### CLI Example (No Browser Needed)
 
-# Create a narrative
-narrative = Narrative(
-    id="ai-revolution",
-    name="AI Revolution",
-    description="AI transforming productivity",
-    created_at=datetime.now(),
-    updated_at=datetime.now(),
-    lifecycle_stage=LifecycleStage.FORMATION,
-    regime_alignment={},
-    tags=["tech", "innovation", "growth"],
-    related_assets=["NVDA", "MSFT"],
-)
-
-# Add capital flow data
-flow = CapitalFlow(
-    narrative_id=narrative.id,
-    timestamp=datetime.now(),
-    inflow=1_000_000,
-    outflow=300_000,
-    net_flow=700_000,
-    volume=2_000_000,
-    sources=["institutional"],
-)
-narrative.capital_flows.append(flow)
-
-# Analyze and update
-detector.add_narrative(narrative)
-detector.update_narrative(narrative)
-
-# Rank narratives
-ranked = ranker.rank_narratives([narrative])
-
-# Get top opportunities
-opportunities = ranker.get_top_opportunities(
-    [narrative],
-    top_n=10,
-    early_stage_only=True
-)
-```
-
-## Example Usage
-
-Run the example script to see the system in action:
+If you prefer a terminal-only demo:
 
 ```bash
 python example.py
 ```
 
-This demonstrates:
-- Creating narratives with different lifecycle stages
-- Adding capital flow data
-- Detecting lifecycle stages
-- Calculating regime alignment
-- Ranking by alpha potential
-- Identifying top opportunities
+This prints a full analysis to the console — narrative rankings, alpha scores, lifecycle stages, and regime alignment — using the same built-in data.
 
-## Architecture
+---
 
-### Core Components
+## What Data Is Used?
 
-1. **Models** (`models.py`):
-   - `Narrative`: Core narrative data structure
-   - `CapitalFlow`: Capital flow tracking
-   - `RegimeType`: Economic regime enum
-   - `LifecycleStage`: Narrative lifecycle enum
+Right now the system runs on **built-in example data** defined in `app.py` and `example.py`. No external API calls are made. The example narratives are:
 
-2. **Detector** (`detector.py`):
-   - `NarrativeDetector`: Analyzes narratives
-   - Classifies lifecycle stages
-   - Calculates regime alignment scores
+| Narrative | Stage | Related Assets | Description |
+|---|---|---|---|
+| AI Revolution | Formation | NVDA, MSFT, META | Early-stage AI productivity theme |
+| Energy Transition | Acceleration | ENPH, FSLR, NEE | Renewable energy infrastructure buildout |
+| Magnificent 7 Tech | Saturation | AAPL, MSFT, GOOGL, … | Mega-cap tech dominance (late, consensus) |
+| Crypto Winter Recovery | Formation | BTC, ETH, COIN | Post-bear-market crypto recovery |
+| Defensive Rotation | Acceleration | JNJ, PG, KO, WMT | Flight to quality / safe havens |
 
-3. **Ranker** (`ranker.py`):
-   - `NarrativeRanker`: Ranks narratives by alpha potential
-   - Calculates composite alpha scores
-   - Identifies top opportunities
+Each narrative has **simulated capital flow data** (inflows, outflows, volumes) to demonstrate how the scoring engine works. The economic regime is set to **Expansion** by default.
 
-## Alpha Strategy
+In a future MVP, this data would come from real market feeds (capital flow APIs, sentiment feeds, etc.).
 
-The system implements a systematic approach to finding alpha:
+---
 
-### 1. Track Capital Flows
-Monitor where institutional and retail capital is moving. Early flows signal conviction before headlines emerge.
+## Project Structure
 
-### 2. Identify Lifecycle Stage
-Focus on Formation and Acceleration stages where alpha still exists. Avoid Saturation and Decay where consensus pricing has eliminated edge.
+```
+narratives/
+├── app.py                  ← Web dashboard (Flask). Run this to see the UI.
+├── example.py              ← CLI demo. Run this for a terminal-only walkthrough.
+├── setup.py                ← Package config & dependencies.
+├── README.md               ← You are here.
+│
+├── src/narratives/         ← Core library (the actual engine)
+│   ├── __init__.py         ← Public API — exports all key classes.
+│   ├── models.py           ← Data models: Narrative, CapitalFlow, RegimeType, LifecycleStage.
+│   ├── detector.py         ← NarrativeDetector — lifecycle classification & regime alignment.
+│   └── ranker.py           ← NarrativeRanker — alpha scoring & ranking logic.
+│
+├── templates/              ← HTML templates for the web dashboard
+│   ├── index.html          ← Main dashboard page (all narratives + chart).
+│   └── detail.html         ← Single-narrative deep-dive page.
+│
+├── build/                  ← Build artifacts (auto-generated, can be ignored).
+├── LICENSE                 ← MIT License.
+└── SECURITY.md             ← Security policy.
+```
 
-### 3. Match Regime Context
-Narratives perform differently in different regimes. Energy works in inflation; tech thrives in expansion; defensive shines in recession.
+### Key Files Explained
 
-### 4. Monitor Flow Momentum
-Accelerating flows indicate growing conviction and increased probability of narrative success.
+| File | What It Does |
+|---|---|
+| `src/narratives/models.py` | Defines the data structures — what a "narrative" is, what a "capital flow" record looks like, the enum of lifecycle stages and economic regimes. Start here to understand the domain model. |
+| `src/narratives/detector.py` | The **NarrativeDetector** class. Takes a narrative + its flow data and classifies which lifecycle stage it's in, then calculates how well it aligns with the current economic regime. |
+| `src/narratives/ranker.py` | The **NarrativeRanker** class. Takes a list of narratives and produces a ranked list scored by alpha potential (the 0-100 composite score). Also provides human-readable explanations of each ranking. |
+| `app.py` | A Flask web app that wires the engine to a browser UI. Builds example narratives on startup, runs the detector and ranker, and serves the results as HTML pages and JSON API endpoints. |
+| `example.py` | A standalone script that does the same analysis but prints results to the terminal. Good for understanding the Python API without a browser. |
 
-## Use Cases
+---
 
-- **Portfolio Management**: Identify emerging themes before they become consensus
-- **Risk Management**: Detect narrative saturation and decay signals
-- **Market Analysis**: Understand capital flows and regime dynamics
-- **Research**: Analyze narrative evolution and effectiveness
+## How the Engine Works (Step by Step)
+
+1. **Define narratives** — each has a name, description, lifecycle stage, tags, related assets, and sentiment/attention scores.
+2. **Add capital flow data** — timestamped records of inflows, outflows, net flows, and volume per narrative.
+3. **Detect lifecycle stage** — the `NarrativeDetector` uses capital velocity, attention velocity, and time active to classify each narrative into Formation → Acceleration → Maturity → Saturation → Decay.
+4. **Calculate regime alignment** — the detector scores how well a narrative fits each possible economic regime (expansion, recession, inflation, etc.).
+5. **Rank by alpha** — the `NarrativeRanker` computes a weighted alpha score and sorts narratives from highest opportunity to lowest.
+6. **Surface opportunities** — the dashboard (or CLI) shows the ranked results with visual indicators so you can spot early-stage, high-alpha themes at a glance.
+
+### Economic Regimes
+
+The system considers six regime types:
+
+| Regime | Description |
+|---|---|
+| **Expansion** | Growth, rising markets |
+| **Recession** | Contraction, risk-off |
+| **Inflation** | Rising prices, monetary tightening |
+| **Deflation** | Falling prices, deleveraging |
+| **Volatility** | High uncertainty, regime transitions |
+| **Stability** | Low volatility, established trends |
+
+Different narratives perform better in different regimes — that context is baked into the scoring.
+
+---
+
+## API Endpoints
+
+The web app also exposes a simple JSON API:
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/narratives` | All narratives, ranked, as JSON |
+| `GET /api/narrative/<id>` | Single narrative detail as JSON |
+
+Example:
+
+```bash
+curl http://localhost:5000/api/narratives | python3 -m json.tool
+```
+
+---
+
+## Development
+
+```bash
+# Install with dev dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Run the web dashboard in debug mode
+python app.py        # auto-reloads on code changes
+```
+
+---
+
+## Roadmap / Next Steps
+
+This is a concept validation. To move toward an MVP:
+
+- [ ] Connect to real capital flow data sources (e.g., fund flow APIs, on-chain data)
+- [ ] Add real-time sentiment feeds (news, social, filings)
+- [ ] Implement regime detection from macro indicators
+- [ ] Add historical backtesting to validate alpha signals
+- [ ] User-defined narratives and watchlists
+- [ ] Alerts when a narrative transitions lifecycle stages
+
+---
 
 ## Philosophy
 
@@ -178,21 +222,12 @@ Accelerating flows indicate growing conviction and increased probability of narr
 
 This system helps identify that inflection point.
 
-## Development
-
-Run tests:
-```bash
-pytest
-```
+---
 
 ## License
 
-MIT License - See LICENSE file for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ## Contributing
 
-Contributions welcome! Please open an issue or PR.
-
----
-
-**Remember**: Alpha exists in the early phase of narrative formation. Track capital flows, not headlines.
+Contributions welcome! Please open an issue or pull request.

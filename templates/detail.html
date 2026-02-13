@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ n.name }} — Narratives</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#252836;--border:#2e3140;
+  --text:#e4e4e7;--muted:#9ca3af;--accent:#3b82f6;--green:#10b981;
+  --red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;
+  --radius:12px;--shadow:0 4px 24px rgba(0,0,0,.35);
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:1100px;margin:0 auto;padding:0 24px}
+
+/* ── header ────────────────────────────────────────────────── */
+.back{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);margin-bottom:16px;padding:20px 0 0}
+.back:hover{color:var(--accent)}
+.hero{background:linear-gradient(135deg,#131520 0%,#1e2235 100%);border-bottom:1px solid var(--border);padding:0 0 32px}
+.hero h1{font-size:1.8rem;font-weight:700;margin-bottom:4px}
+.hero .desc{color:var(--muted);font-size:.92rem;max-width:700px}
+.hero-meta{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:14px}
+.badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.rank-badge{background:var(--surface2);border:1px solid var(--border);padding:4px 14px;border-radius:20px;font-size:.82rem;font-weight:600}
+.regime-badge{background:var(--surface2);border:1px solid var(--border);padding:4px 14px;border-radius:20px;font-size:.82rem}
+
+/* ── score header ──────────────────────────────────────────── */
+.score-hero{display:flex;align-items:center;gap:24px;margin:28px 0}
+.score-ring{position:relative;width:120px;height:120px;flex-shrink:0}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-ring .center .num{font-size:1.8rem;font-weight:700}
+.score-ring .center .lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.score-info{flex:1}
+.score-info p{color:var(--muted);font-size:.88rem;line-height:1.7}
+
+/* ── cards / metrics ───────────────────────────────────────── */
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:24px 0}
+.mcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.mcard .label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.mcard .val{font-size:1.3rem;font-weight:700}
+.mcard .sub{font-size:.75rem;color:var(--muted);margin-top:2px}
+
+/* ── breakdown ─────────────────────────────────────────────── */
+.breakdown{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin:24px 0}
+.breakdown h3{font-size:1rem;font-weight:600;margin-bottom:16px}
+.comp{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.comp:last-child{border-bottom:none}
+.comp .cname{width:140px;font-size:.82rem;color:var(--muted);text-transform:capitalize}
+.comp .bar-wrap{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.comp .bar-fill{height:100%;border-radius:4px}
+.comp .cval{width:80px;text-align:right;font-weight:600;font-size:.88rem}
+
+/* ── charts ────────────────────────────────────────────────── */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:24px 0}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+.chart-box h3{font-size:.95rem;font-weight:600;margin-bottom:12px}
+.chart-wrap{position:relative;height:280px}
+@media(max-width:800px){.charts{grid-template-columns:1fr}}
+
+/* ── regime table ──────────────────────────────────────────── */
+.regime-table{width:100%;border-collapse:collapse;margin-top:8px}
+.regime-table th,.regime-table td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-size:.85rem}
+.regime-table th{color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
+.regime-table .bar-cell{width:50%}
+.regime-table .rbar{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden}
+.regime-table .rfill{height:100%;border-radius:3px;background:var(--accent)}
+
+/* ── tags / assets ─────────────────────────────────────────── */
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0}
+.tag{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:.75rem;color:var(--muted)}
+.asset-list{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.asset{background:var(--accent)18;border:1px solid var(--accent)44;color:var(--accent);padding:6px 14px;border-radius:8px;font-size:.82rem;font-weight:600}
+
+footer{border-top:1px solid var(--border);padding:24px 0;text-align:center;color:var(--muted);font-size:.78rem;margin-top:40px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="container">
+    <a href="/" class="back">← Back to Dashboard</a>
+    <h1>{{ n.name }}</h1>
+    <p class="desc">{{ n.description }}</p>
+    <div class="hero-meta">
+      <span class="badge" style="background:{{ n.stage_color }}22;color:{{ n.stage_color }}">{{ n.stage_label }}</span>
+      <span class="rank-badge">#{{ n.rank }} Ranked</span>
+      <span class="regime-badge">Regime: {{ current_regime | upper }}</span>
+      <span style="color:var(--muted);font-size:.82rem">Created: {{ n.created_at }}</span>
+    </div>
+  </div>
+</div>
+
+<main class="container">
+
+  <!-- ── alpha score ring + description ──────────────────────── -->
+  <div class="score-hero">
+    <div class="score-ring">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--surface2)" stroke-width="10"/>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="{{ n.stage_color }}" stroke-width="10"
+                stroke-dasharray="{{ (n.alpha_score / 100) * 326.7 }} 326.7"
+                stroke-linecap="round"/>
+      </svg>
+      <div class="center">
+        <span class="num" style="color:{{ n.stage_color }}">{{ n.alpha_score }}</span>
+        <span class="lbl">Alpha Score</span>
+      </div>
+    </div>
+    <div class="score-info">
+      {% if n.explanation and n.explanation.reasoning %}
+      <p>{{ n.explanation.reasoning }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── key metrics ─────────────────────────────────────────── -->
+  <div class="grid4">
+    <div class="mcard">
+      <div class="label">Net Capital Flow</div>
+      <div class="val" style="color:{% if n.net_flow > 0 %}var(--green){% else %}var(--red){% endif %}">${{ "{:,.0f}".format(n.net_flow) }}</div>
+      <div class="sub">24h aggregate</div>
+    </div>
+    <div class="mcard">
+      <div class="label">Flow Momentum</div>
+      <div class="val">{{ n.flow_momentum }}</div>
+      <div class="sub">Latest tick</div>
+    </div>
+    <div class="mcard">
+      <div class="label">Regime Alignment</div>
+      <div class="val">{{ "%.0f"|format(n.regime_score * 100) }}%</div>
+      <div class="sub">vs {{ current_regime }}</div>
+    </div>
+    <div class="mcard">
+      <div class="label">Lifecycle Stage</div>
+      <div class="val" style="color:{{ n.stage_color }}">{{ n.stage_label }}</div>
+      <div class="sub">{% if n.is_early_stage %}High alpha window{% else %}Consensus forming{% endif %}</div>
+    </div>
+    <div class="mcard">
+      <div class="label">Sentiment</div>
+      <div class="val">{{ "%.0f"|format(n.sentiment_score * 100) }}%</div>
+      <div class="sub">-100 to 100 scale</div>
+    </div>
+    <div class="mcard">
+      <div class="label">Attention</div>
+      <div class="val">{{ "%.0f"|format(n.attention_score * 100) }}%</div>
+      <div class="sub">0 to 100 scale</div>
+    </div>
+  </div>
+
+  <!-- ── score breakdown ─────────────────────────────────────── -->
+  {% if n.explanation and n.explanation.components %}
+  <div class="breakdown">
+    <h3>Score Breakdown</h3>
+    {% for key, comp in n.explanation.components.items() %}
+    <div class="comp">
+      <div class="cname">{{ key | replace('_',' ') }}</div>
+      <div class="bar-wrap">
+        <div class="bar-fill" style="width:{{ (comp.contribution / 100) * 100 }}%;background:{{ n.stage_color }}"></div>
+      </div>
+      <div class="cval">{{ "%.1f"|format(comp.contribution) }} pts</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── charts ──────────────────────────────────────────────── -->
+  <div class="charts">
+    <div class="chart-box">
+      <h3>Capital Flows Over Time</h3>
+      <div class="chart-wrap"><canvas id="flowChart"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <h3>Regime Alignment</h3>
+      <div class="chart-wrap"><canvas id="regimeChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── regime alignment table ──────────────────────────────── -->
+  <div class="breakdown">
+    <h3>Regime Alignment Breakdown</h3>
+    <table class="regime-table">
+      <thead><tr><th>Regime</th><th>Score</th><th class="bar-cell">Alignment</th></tr></thead>
+      <tbody>
+        {% for regime, score in n.regime_alignment.items() %}
+        <tr>
+          <td style="text-transform:capitalize">{{ regime }}</td>
+          <td>{{ "%.0f"|format(score * 100) }}%</td>
+          <td class="bar-cell"><div class="rbar"><div class="rfill" style="width:{{ score * 100 }}%"></div></div></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── assets & tags ───────────────────────────────────────── -->
+  <div class="breakdown">
+    <h3>Related Assets</h3>
+    <div class="asset-list">
+      {% for a in n.related_assets %}<span class="asset">{{ a }}</span>{% endfor %}
+    </div>
+    <h3 style="margin-top:20px">Tags</h3>
+    <div class="tags">
+      {% for t in n.tags %}<span class="tag">{{ t }}</span>{% endfor %}
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="container">Narratives v0.1.0 — Financial Alpha Discovery</div>
+</footer>
+
+<script>
+const FLOWS = {{ n.flows | tojson }};
+const REGIME = {{ n.regime_alignment | tojson }};
+
+// ── capital flow chart ──────────────────────────────────────
+(function(){
+  const ctx = document.getElementById('flowChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: FLOWS.map(f => f.timestamp),
+      datasets: [
+        {
+          label: 'Inflow',
+          data: FLOWS.map(f => f.inflow),
+          borderColor: '#10b981',
+          backgroundColor: '#10b98122',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+        },
+        {
+          label: 'Outflow',
+          data: FLOWS.map(f => f.outflow),
+          borderColor: '#ef4444',
+          backgroundColor: '#ef444422',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+        },
+        {
+          label: 'Net Flow',
+          data: FLOWS.map(f => f.net_flow),
+          borderColor: '#3b82f6',
+          backgroundColor: '#3b82f622',
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          borderWidth: 2,
+          borderDash: [6, 3],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#9ca3af', font: { size: 11 } } },
+        tooltip: {
+          backgroundColor: '#252836',
+          borderColor: '#2e3140',
+          borderWidth: 1,
+          titleColor: '#e4e4e7',
+          bodyColor: '#9ca3af',
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: { label: ctx => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString()}` },
+        },
+      },
+      scales: {
+        x: { grid: { color: '#2e314033' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+        y: {
+          grid: { color: '#2e314044' },
+          ticks: { color: '#9ca3af', font: { size: 10 }, callback: v => '$' + (v / 1e6).toFixed(1) + 'M' },
+        },
+      },
+    },
+  });
+})();
+
+// ── regime radar chart ──────────────────────────────────────
+(function(){
+  const ctx = document.getElementById('regimeChart').getContext('2d');
+  const labels = Object.keys(REGIME).map(r => r.charAt(0).toUpperCase() + r.slice(1));
+  const values = Object.values(REGIME);
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Alignment',
+        data: values,
+        borderColor: '{{ n.stage_color }}',
+        backgroundColor: '{{ n.stage_color }}33',
+        pointBackgroundColor: '{{ n.stage_color }}',
+        pointBorderColor: '#fff',
+        pointRadius: 4,
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#252836',
+          borderColor: '#2e3140',
+          borderWidth: 1,
+          titleColor: '#e4e4e7',
+          bodyColor: '#9ca3af',
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: { label: ctx => `${(ctx.parsed.r * 100).toFixed(0)}%` },
+        },
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 1,
+          grid: { color: '#2e314044' },
+          angleLines: { color: '#2e314044' },
+          pointLabels: { color: '#9ca3af', font: { size: 11 } },
+          ticks: { display: false },
+        },
+      },
+    },
+  });
+})();
+</script>
+</body>
+</html>
