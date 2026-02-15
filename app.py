@@ -14,6 +14,10 @@ from narratives import (
     LifecycleStage,
     NarrativeDetector,
     NarrativeRanker,
+    Claim,
+    ClaimTier,
+    CausalDirection,
+    ClaimGraph,
 )
 
 app = Flask(__name__)
@@ -231,6 +235,400 @@ def api_narrative(narrative_id):
     if n is None:
         return jsonify({"error": "not found"}), 404
     return jsonify(narrative_to_dict(n))
+
+
+# ── Claim hierarchy ───────────────────────────────────────────────────────────
+claim_graph = ClaimGraph()
+
+
+def _build_claim_hierarchy():
+    """Build the example hierarchical claim tree described in the issue."""
+    now = datetime.now()
+
+    # ── Root 1: Fed tightening ────────────────────────────────────────────
+    claim_graph.add_claim(Claim(
+        id="fed-tightening",
+        text="Fed holding rates higher for longer than market expects",
+        asset_classes=["Rates", "FX", "Equities", "Credit", "EM"],
+        created_at=now - timedelta(days=90),
+        persistence_days=90,
+        expected_duration="cyclical",
+        trend="stable",
+    ))
+
+    # Level 1
+    claim_graph.add_claim(Claim(
+        id="usd-strengthening",
+        text="US dollar is strengthening against major currencies",
+        asset_classes=["FX"],
+        related_assets=["DXY", "EUR/USD"],
+        created_at=now - timedelta(days=60),
+        persistence_days=60,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+    claim_graph.add_claim(Claim(
+        id="credit-tightening",
+        text="Credit conditions are tightening",
+        asset_classes=["Credit"],
+        related_assets=["HYG", "LQD"],
+        created_at=now - timedelta(days=45),
+        persistence_days=45,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+    claim_graph.add_claim(Claim(
+        id="duration-repricing",
+        text="Duration-sensitive assets are repricing",
+        asset_classes=["Rates", "Equities"],
+        related_assets=["TLT", "IEF"],
+        created_at=now - timedelta(days=30),
+        persistence_days=30,
+        expected_duration="cyclical",
+        trend="stable",
+    ))
+    claim_graph.add_claim(Claim(
+        id="rate-differential",
+        text="US-EU rate differential widening",
+        asset_classes=["Rates", "FX"],
+        related_assets=["EUR/USD"],
+        created_at=now - timedelta(days=30),
+        persistence_days=30,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+
+    claim_graph.add_edge("fed-tightening", "usd-strengthening")
+    claim_graph.add_edge("fed-tightening", "credit-tightening")
+    claim_graph.add_edge("fed-tightening", "duration-repricing")
+    claim_graph.add_edge("fed-tightening", "rate-differential")
+
+    # Level 2
+    claim_graph.add_claim(Claim(
+        id="em-debt-stress",
+        text="Emerging market dollar-denominated debt is under stress",
+        asset_classes=["EM", "Credit"],
+        related_assets=["EMB", "EEM"],
+        created_at=now - timedelta(days=20),
+        persistence_days=20,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+    claim_graph.add_claim(Claim(
+        id="housing-contracting",
+        text="Housing demand is contracting",
+        asset_classes=["Equities"],
+        related_assets=["XHB", "ITB"],
+        created_at=now - timedelta(days=15),
+        persistence_days=15,
+        expected_duration="cyclical",
+        trend="stable",
+    ))
+    claim_graph.add_claim(Claim(
+        id="growth-underperform",
+        text="Growth equities are underperforming value",
+        asset_classes=["Equities"],
+        related_assets=["IWF", "IWD", "ARKK", "SPY"],
+        created_at=now - timedelta(days=25),
+        persistence_days=25,
+        expected_duration="cyclical",
+        trend="stable",
+    ))
+    claim_graph.add_claim(Claim(
+        id="credit-spreads-widening",
+        text="Credit spreads widening in leveraged loans",
+        asset_classes=["Credit"],
+        related_assets=["BKLN", "HYG"],
+        created_at=now - timedelta(days=10),
+        persistence_days=10,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+    claim_graph.add_claim(Claim(
+        id="eur-usd-declining",
+        text="EUR/USD declining toward parity",
+        asset_classes=["FX"],
+        related_assets=["EUR/USD"],
+        created_at=now - timedelta(days=14),
+        persistence_days=14,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+
+    claim_graph.add_edge("usd-strengthening", "em-debt-stress")
+    claim_graph.add_edge("credit-tightening", "housing-contracting")
+    claim_graph.add_edge("duration-repricing", "growth-underperform")
+    claim_graph.add_edge("credit-tightening", "credit-spreads-widening")
+    claim_graph.add_edge("rate-differential", "eur-usd-declining")
+
+    # Level 3
+    claim_graph.add_claim(Claim(
+        id="em-currency-crisis",
+        text="EM currency crises risk rising",
+        asset_classes=["FX", "EM"],
+        related_assets=["BRL", "ZAR", "TRY"],
+        created_at=now - timedelta(days=7),
+        persistence_days=7,
+        expected_duration="transient",
+        trend="rising",
+    ))
+    claim_graph.add_claim(Claim(
+        id="homebuilders-falling",
+        text="Homebuilder stocks falling",
+        asset_classes=["Equities"],
+        related_assets=["DHI", "LEN", "TOL"],
+        created_at=now - timedelta(days=5),
+        persistence_days=5,
+        expected_duration="cyclical",
+        trend="stable",
+    ))
+    claim_graph.add_claim(Claim(
+        id="pe-exit-declining",
+        text="Private equity exit activity declining",
+        asset_classes=["Credit", "Equities"],
+        related_assets=["BX", "KKR", "APO"],
+        created_at=now - timedelta(days=10),
+        persistence_days=10,
+        expected_duration="cyclical",
+        trend="fading",
+    ))
+    claim_graph.add_claim(Claim(
+        id="regional-bank-stress",
+        text="Regional bank CRE exposure under stress",
+        asset_classes=["Equities", "Credit"],
+        related_assets=["KRE", "NYCB"],
+        created_at=now - timedelta(days=12),
+        persistence_days=12,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+
+    claim_graph.add_edge("em-debt-stress", "em-currency-crisis")
+    claim_graph.add_edge("housing-contracting", "homebuilders-falling")
+    claim_graph.add_edge("credit-spreads-widening", "pe-exit-declining")
+    claim_graph.add_edge("credit-spreads-widening", "regional-bank-stress")
+
+    # ── Root 2: AI infrastructure buildout ────────────────────────────────
+    claim_graph.add_claim(Claim(
+        id="ai-buildout",
+        text="AI infrastructure buildout exceeding all forecasts",
+        asset_classes=["Equities", "Commodities", "Energy"],
+        created_at=now - timedelta(days=120),
+        persistence_days=120,
+        expected_duration="structural",
+        trend="rising",
+    ))
+
+    # Level 1
+    claim_graph.add_claim(Claim(
+        id="power-demand",
+        text="Power demand growth inflecting upward",
+        asset_classes=["Energy", "Commodities"],
+        related_assets=["NEE", "SO", "DUK"],
+        created_at=now - timedelta(days=60),
+        persistence_days=60,
+        expected_duration="structural",
+        trend="rising",
+    ))
+    claim_graph.add_claim(Claim(
+        id="semi-bottleneck",
+        text="Semiconductor supply chain bottleneck forming",
+        asset_classes=["Equities"],
+        related_assets=["NVDA", "AMD", "TSM"],
+        created_at=now - timedelta(days=45),
+        persistence_days=45,
+        expected_duration="cyclical",
+        trend="stable",
+    ))
+
+    claim_graph.add_edge("ai-buildout", "power-demand")
+    claim_graph.add_edge("ai-buildout", "semi-bottleneck")
+
+    # Level 2
+    claim_graph.add_claim(Claim(
+        id="natgas-demand",
+        text="Natural gas demand exceeding supply models",
+        asset_classes=["Commodities", "Energy"],
+        related_assets=["UNG", "FCG"],
+        created_at=now - timedelta(days=20),
+        persistence_days=20,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+    claim_graph.add_claim(Claim(
+        id="nuclear-rehab",
+        text="Nuclear energy political rehabilitation",
+        asset_classes=["Energy"],
+        related_assets=["CCJ", "URA"],
+        created_at=now - timedelta(days=30),
+        persistence_days=30,
+        expected_duration="structural",
+        trend="rising",
+    ))
+    claim_graph.add_claim(Claim(
+        id="tsmc-pricing",
+        text="TSMC pricing power increasing",
+        asset_classes=["Equities"],
+        related_assets=["TSM"],
+        created_at=now - timedelta(days=14),
+        persistence_days=14,
+        expected_duration="cyclical",
+        trend="stable",
+    ))
+    claim_graph.add_claim(Claim(
+        id="packaging-scarce",
+        text="Advanced packaging becoming scarce",
+        asset_classes=["Equities"],
+        related_assets=["ASX", "AMKR"],
+        created_at=now - timedelta(days=10),
+        persistence_days=10,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+
+    claim_graph.add_edge("power-demand", "natgas-demand")
+    claim_graph.add_edge("power-demand", "nuclear-rehab")
+    claim_graph.add_edge("semi-bottleneck", "tsmc-pricing")
+    claim_graph.add_edge("semi-bottleneck", "packaging-scarce")
+
+    # ── Root 3: China stimulus ────────────────────────────────────────────
+    claim_graph.add_claim(Claim(
+        id="china-stimulus",
+        text="China stimulus insufficient to offset property deflation",
+        asset_classes=["EM", "Commodities", "FX"],
+        created_at=now - timedelta(days=180),
+        persistence_days=180,
+        expected_duration="structural",
+        trend="stable",
+    ))
+
+    claim_graph.add_claim(Claim(
+        id="china-commodity-demand",
+        text="Chinese commodity demand structurally lower",
+        asset_classes=["Commodities"],
+        related_assets=["BHP", "RIO", "VALE"],
+        created_at=now - timedelta(days=90),
+        persistence_days=90,
+        expected_duration="structural",
+        trend="stable",
+    ))
+    claim_graph.add_claim(Claim(
+        id="cny-weakening",
+        text="Yuan weakening pressuring Asian FX",
+        asset_classes=["FX", "EM"],
+        related_assets=["CNY", "KRW", "TWD"],
+        created_at=now - timedelta(days=60),
+        persistence_days=60,
+        expected_duration="cyclical",
+        trend="stable",
+    ))
+    claim_graph.add_claim(Claim(
+        id="em-equities-outflows",
+        text="EM equity outflows accelerating",
+        asset_classes=["EM", "Equities"],
+        related_assets=["EEM", "VWO", "FXI"],
+        created_at=now - timedelta(days=30),
+        persistence_days=30,
+        expected_duration="cyclical",
+        trend="rising",
+    ))
+
+    claim_graph.add_edge("china-stimulus", "china-commodity-demand")
+    claim_graph.add_edge("china-stimulus", "cny-weakening")
+    claim_graph.add_edge("china-stimulus", "em-equities-outflows")
+
+    # Compute influence scores
+    claim_graph.compute_influence()
+
+
+_build_claim_hierarchy()
+
+
+# ── Claim routes ─────────────────────────────────────────────────────────────
+
+TIER_COLORS = {
+    "tier_1": "#ef4444",
+    "tier_2": "#f59e0b",
+    "tier_3": "#6b7280",
+}
+
+TIER_LABELS = {
+    "tier_1": "Tier 1 — Root Macro Driver",
+    "tier_2": "Tier 2 — Consequence",
+    "tier_3": "Tier 3 — Observable Effect",
+}
+
+TREND_ICONS = {
+    "rising": "↑",
+    "stable": "→",
+    "fading": "↓",
+}
+
+
+@app.route("/claims")
+def claims_index():
+    roots = claim_graph.get_roots()
+    roots.sort(key=lambda c: c.influence_score, reverse=True)
+    trees = []
+    for root in roots:
+        tree = claim_graph.tree_to_dict(root.id)
+        if tree is not None:
+            trees.append(tree)
+    interactions = claim_graph.find_cross_tree_interactions()
+    ix_dicts = [claim_graph.interaction_to_dict(ix) for ix in interactions]
+    return render_template(
+        "claims.html",
+        trees=trees,
+        interactions=ix_dicts,
+        tier_colors=TIER_COLORS,
+        tier_labels=TIER_LABELS,
+        trend_icons=TREND_ICONS,
+        now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+
+
+@app.route("/claim/<claim_id>")
+def claim_detail(claim_id):
+    claim = claim_graph.get_claim(claim_id)
+    if claim is None:
+        return "Claim not found", 404
+    data = claim_graph.claim_to_dict(claim)
+    parents = [claim_graph.claim_to_dict(p) for p in claim_graph.get_parents(claim_id)]
+    children = [claim_graph.claim_to_dict(c) for c in claim_graph.get_children(claim_id)]
+    subtree = claim_graph.tree_to_dict(claim_id)
+    return render_template(
+        "claim_detail.html",
+        claim=data,
+        parents=parents,
+        children=children,
+        subtree=subtree,
+        tier_colors=TIER_COLORS,
+        tier_labels=TIER_LABELS,
+        trend_icons=TREND_ICONS,
+        now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+
+
+@app.route("/api/claims")
+def api_claims():
+    roots = claim_graph.get_roots()
+    roots.sort(key=lambda c: c.influence_score, reverse=True)
+    trees = [claim_graph.tree_to_dict(r.id) for r in roots]
+    return jsonify([t for t in trees if t is not None])
+
+
+@app.route("/api/claim/<claim_id>")
+def api_claim(claim_id):
+    claim = claim_graph.get_claim(claim_id)
+    if claim is None:
+        return jsonify({"error": "not found"}), 404
+    return jsonify(claim_graph.claim_to_dict(claim))
+
+
+@app.route("/api/claims/interactions")
+def api_claim_interactions():
+    interactions = claim_graph.find_cross_tree_interactions()
+    return jsonify([claim_graph.interaction_to_dict(ix) for ix in interactions])
 
 
 if __name__ == "__main__":
