@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claim Hierarchy — Financial Causal Map</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#252836;--border:#2e3140;
+  --text:#e4e4e7;--muted:#9ca3af;--accent:#3b82f6;--green:#10b981;
+  --red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;
+  --radius:12px;--shadow:0 4px 24px rgba(0,0,0,.35);
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:1320px;margin:0 auto;padding:0 24px}
+
+/* ── header ────────────────────────────────────────────────── */
+header{background:linear-gradient(135deg,#131520 0%,#1e2235 100%);border-bottom:1px solid var(--border);padding:28px 0}
+header .top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+header h1{font-size:1.6rem;font-weight:700;letter-spacing:-.02em}
+header h1 span{color:var(--accent)}
+.subtitle{color:var(--muted);font-size:.88rem;margin-top:6px}
+.timestamp{color:var(--muted);font-size:.75rem;margin-top:4px}
+
+/* ── nav ───────────────────────────────────────────────────── */
+.nav{display:flex;gap:8px;margin-top:12px}
+.nav a{display:inline-block;padding:6px 16px;border-radius:20px;font-size:.82rem;font-weight:500;border:1px solid var(--border);color:var(--muted);background:var(--surface2);transition:all .15s}
+.nav a:hover,.nav a.active{color:var(--text);border-color:var(--accent);background:var(--accent)18;text-decoration:none}
+.nav a.active{background:var(--accent)22;color:var(--accent)}
+
+/* ── section title ─────────────────────────────────────────── */
+.section-title{font-size:1.15rem;font-weight:600;margin:32px 0 16px;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:1.1rem}
+
+/* ── root claim card ───────────────────────────────────────── */
+.root-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:28px;position:relative;overflow:hidden}
+.root-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.root-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.root-text{font-size:1.15rem;font-weight:600;max-width:700px;line-height:1.5}
+.root-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+
+/* ── influence bar ─────────────────────────────────────────── */
+.influence-wrap{margin:12px 0 20px}
+.influence-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-bottom:4px}
+.influence-bg{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.influence-fill{height:100%;border-radius:4px;transition:width .5s ease}
+
+/* ── badge ─────────────────────────────────────────────────── */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.tier-badge{padding:4px 12px;font-size:.72rem;border-radius:6px;font-weight:600}
+.asset-class{background:var(--accent)18;color:var(--accent);border:1px solid var(--accent)33;padding:3px 10px;border-radius:6px;font-size:.7rem;font-weight:500}
+.trend{font-size:.82rem;font-weight:500;padding:2px 8px;border-radius:4px}
+.trend-rising{color:var(--green);background:var(--green)15}
+.trend-stable{color:var(--yellow);background:var(--yellow)15}
+.trend-fading{color:var(--red);background:var(--red)15}
+.duration{font-size:.72rem;color:var(--muted);background:var(--surface2);padding:3px 10px;border-radius:6px;border:1px solid var(--border)}
+
+/* ── claim tree ────────────────────────────────────────────── */
+.tree{padding-left:0;list-style:none}
+.tree ul{padding-left:28px;list-style:none;border-left:2px solid var(--border);margin-left:12px}
+.tree li{position:relative;padding:6px 0}
+.claim-node{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);transition:all .15s;cursor:pointer;text-decoration:none;color:var(--text)}
+.claim-node:hover{border-color:var(--accent);transform:translateX(3px);text-decoration:none}
+.claim-text{flex:1;font-size:.88rem}
+.claim-score{font-size:.78rem;font-weight:600;white-space:nowrap;padding:3px 8px;border-radius:4px;background:var(--surface);border:1px solid var(--border)}
+.claim-assets{display:flex;gap:4px;flex-wrap:wrap}
+.claim-asset{font-size:.68rem;color:var(--accent);font-weight:500}
+
+/* ── stats ─────────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:28px 0}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.stat-card .label{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.stat-card .value{font-size:1.5rem;font-weight:700}
+.stat-card .sub{font-size:.78rem;color:var(--muted);margin-top:2px}
+
+/* ── cross-tree interactions ───────────────────────────────── */
+.interaction-card{background:linear-gradient(135deg,#1a1025 0%,#1a1d27 100%);border:1px solid var(--purple)33;border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.interaction-card .ix-asset{font-size:1rem;font-weight:700;color:var(--purple);margin-bottom:8px}
+.interaction-card .ix-desc{font-size:.85rem;color:var(--muted);line-height:1.6}
+.ix-claims{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.ix-claim{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.ix-claim .ix-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+.ix-claim .ix-text{font-size:.82rem;line-height:1.5}
+
+/* ── insights ──────────────────────────────────────────────── */
+.insights{background:linear-gradient(135deg,#162033 0%,#1a1d27 100%);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:40px}
+.insights h3{font-size:1rem;font-weight:600;margin-bottom:12px}
+.insights ul{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px}
+.insights li{font-size:.82rem;color:var(--muted);padding:6px 0;padding-left:20px;position:relative}
+.insights li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:700}
+
+footer{border-top:1px solid var(--border);padding:24px 0;text-align:center;color:var(--muted);font-size:.78rem;margin-top:40px}
+
+@media(max-width:640px){
+  .stats{grid-template-columns:1fr 1fr}
+  .ix-claims{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="top">
+      <div>
+        <h1><span>Claims</span> — Financial Causal Map</h1>
+        <p class="subtitle">Hierarchical DAG of Economic Propositions Ranked by Influence Magnitude</p>
+        <p class="timestamp">Last updated {{ now }}</p>
+      </div>
+    </div>
+    <div class="nav">
+      <a href="/">Narratives</a>
+      <a href="/claims" class="active">Claims</a>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Root Claims</div>
+      <div class="value">{{ trees|length }}</div>
+      <div class="sub">Tier 1 macro drivers</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Claims</div>
+      <div class="value">{% set ns = namespace(count=0) %}{% for t in trees %}{% set ns.count = ns.count + 1 + t.descendant_count %}{% endfor %}{{ ns.count }}</div>
+      <div class="sub">Across all trees</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Cross-Tree Interactions</div>
+      <div class="value" style="color:var(--purple)">{{ interactions|length }}</div>
+      <div class="sub">Conflicting force vectors</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Top Influence</div>
+      <div class="value" style="color:var(--red)">{% if trees %}{{ trees[0].influence_score }}{% else %}0{% endif %}<small>/100</small></div>
+      <div class="sub">{% if trees %}{{ trees[0].text[:40] }}…{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- root claims -->
+  <div class="section-title"><span class="icon">🌐</span> Root Claims (by Influence Magnitude)</div>
+
+  {% for tree in trees %}
+  <div class="root-card" style="border-left:3px solid {{ tier_colors[tree.tier] }}">
+    <div class="root-header">
+      <div>
+        <a href="/claim/{{ tree.id }}" class="root-text" style="color:var(--text)">{{ tree.text }}</a>
+        <div class="root-meta">
+          <span class="tier-badge" style="background:{{ tier_colors[tree.tier] }}22;color:{{ tier_colors[tree.tier] }}">{{ tier_labels[tree.tier] }}</span>
+          <span class="duration">{{ tree.expected_duration }}</span>
+          <span class="trend trend-{{ tree.trend }}">{{ trend_icons[tree.trend] }} {{ tree.trend }}</span>
+          {% for ac in tree.asset_classes %}
+          <span class="asset-class">{{ ac }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:1.4rem;font-weight:700;color:{{ tier_colors[tree.tier] }}">{{ tree.influence_score }}</div>
+        <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Influence</div>
+      </div>
+    </div>
+
+    <div class="influence-wrap">
+      <div class="influence-label">
+        <span>Influence Magnitude</span>
+        <span>{{ tree.descendant_count }} downstream claims</span>
+      </div>
+      <div class="influence-bg">
+        <div class="influence-fill" style="width:{{ tree.influence_score }}%;background:{{ tier_colors[tree.tier] }}"></div>
+      </div>
+    </div>
+
+    <!-- subtree -->
+    {% if tree.children %}
+    <ul class="tree">
+      {% for child in tree.children %}
+      <li>
+        <a href="/claim/{{ child.id }}" class="claim-node">
+          <span class="claim-text">{{ child.text }}</span>
+          <span class="claim-score" style="color:{{ tier_colors[child.tier] }}">{{ child.influence_score }}</span>
+          <span class="trend trend-{{ child.trend }}">{{ trend_icons[child.trend] }}</span>
+          <span class="claim-assets">{% for a in child.related_assets[:3] %}<span class="claim-asset">{{ a }}</span>{% endfor %}</span>
+        </a>
+        {% if child.children %}
+        <ul>
+          {% for gc in child.children %}
+          <li>
+            <a href="/claim/{{ gc.id }}" class="claim-node">
+              <span class="claim-text">{{ gc.text }}</span>
+              <span class="claim-score" style="color:{{ tier_colors[gc.tier] }}">{{ gc.influence_score }}</span>
+              <span class="trend trend-{{ gc.trend }}">{{ trend_icons[gc.trend] }}</span>
+              <span class="claim-assets">{% for a in gc.related_assets[:3] %}<span class="claim-asset">{{ a }}</span>{% endfor %}</span>
+            </a>
+            {% if gc.children %}
+            <ul>
+              {% for ggc in gc.children %}
+              <li>
+                <a href="/claim/{{ ggc.id }}" class="claim-node">
+                  <span class="claim-text">{{ ggc.text }}</span>
+                  <span class="claim-score" style="color:{{ tier_colors[ggc.tier] }}">{{ ggc.influence_score }}</span>
+                  <span class="trend trend-{{ ggc.trend }}">{{ trend_icons[ggc.trend] }}</span>
+                  <span class="claim-assets">{% for a in ggc.related_assets[:3] %}<span class="claim-asset">{{ a }}</span>{% endfor %}</span>
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <!-- cross-tree interactions -->
+  {% if interactions %}
+  <div class="section-title"><span class="icon">⚡</span> Cross-Tree Interactions (Opposing Force Vectors)</div>
+  <p style="color:var(--muted);font-size:.85rem;margin-bottom:20px">
+    These assets sit at the intersection of independent macro forces pulling in potentially opposite directions — points of maximum uncertainty and opportunity.
+  </p>
+  {% for ix in interactions %}
+  <div class="interaction-card">
+    <div class="ix-asset">{{ ix.asset }}</div>
+    <div class="ix-desc">{{ ix.description }}</div>
+    <div class="ix-claims">
+      <div class="ix-claim">
+        <div class="ix-label">Force A</div>
+        <div class="ix-text">{{ ix.claim_a_text }}</div>
+      </div>
+      <div class="ix-claim">
+        <div class="ix-label">Force B</div>
+        <div class="ix-text">{{ ix.claim_b_text }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <!-- insights -->
+  <div class="insights">
+    <h3>How to Read This Map</h3>
+    <ul>
+      <li><strong>Root claims</strong> (Tier 1) are the macro drivers — they propagate consequences through every branch</li>
+      <li><strong>Influence magnitude</strong> combines depth (roots rank highest) and breadth (more downstream claims = more influence)</li>
+      <li><strong>Cross-tree interactions</strong> highlight where independent forces create contradictory pressure on the same asset</li>
+      <li><strong>Temporal trend</strong> (↑ rising, → stable, ↓ fading) shows whether a claim's relevance is increasing or decaying</li>
+      <li>Click any claim to see its full subtree, parent chain, and affected assets</li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>
+  <div class="container">Narratives v0.1.0 — Hierarchical Claim Architecture</div>
+</footer>
+
+</body>
+</html>

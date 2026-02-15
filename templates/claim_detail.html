@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ claim.text[:60] }} — Claims</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#252836;--border:#2e3140;
+  --text:#e4e4e7;--muted:#9ca3af;--accent:#3b82f6;--green:#10b981;
+  --red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;
+  --radius:12px;--shadow:0 4px 24px rgba(0,0,0,.35);
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:1100px;margin:0 auto;padding:0 24px}
+
+.back{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);margin-bottom:16px;padding:20px 0 0}
+.back:hover{color:var(--accent)}
+.hero{background:linear-gradient(135deg,#131520 0%,#1e2235 100%);border-bottom:1px solid var(--border);padding:0 0 32px}
+.hero h1{font-size:1.5rem;font-weight:700;margin-bottom:4px;line-height:1.4}
+.hero-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
+.badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.tier-badge{padding:4px 12px;font-size:.72rem;border-radius:6px;font-weight:600}
+.asset-class{background:var(--accent)18;color:var(--accent);border:1px solid var(--accent)33;padding:3px 10px;border-radius:6px;font-size:.7rem;font-weight:500}
+.trend{font-size:.82rem;font-weight:500;padding:2px 8px;border-radius:4px}
+.trend-rising{color:var(--green);background:var(--green)15}
+.trend-stable{color:var(--yellow);background:var(--yellow)15}
+.trend-fading{color:var(--red);background:var(--red)15}
+.duration{font-size:.72rem;color:var(--muted);background:var(--surface2);padding:3px 10px;border-radius:6px;border:1px solid var(--border)}
+
+/* score ring */
+.score-hero{display:flex;align-items:center;gap:24px;margin:28px 0}
+.score-ring{position:relative;width:120px;height:120px;flex-shrink:0}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-ring .center .num{font-size:1.8rem;font-weight:700}
+.score-ring .center .lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.score-info{flex:1}
+.score-info p{color:var(--muted);font-size:.88rem;line-height:1.7}
+
+/* metrics */
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:24px 0}
+.mcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.mcard .label{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.mcard .val{font-size:1.3rem;font-weight:700}
+.mcard .sub{font-size:.75rem;color:var(--muted);margin-top:2px}
+
+/* section */
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin:24px 0}
+.section h3{font-size:1rem;font-weight:600;margin-bottom:16px}
+
+/* parent/child claim links */
+.claim-link{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);margin-bottom:8px;transition:all .15s;color:var(--text);text-decoration:none}
+.claim-link:hover{border-color:var(--accent);transform:translateX(3px);text-decoration:none}
+.claim-link .cl-text{flex:1;font-size:.88rem}
+.claim-link .cl-score{font-size:.78rem;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--surface);border:1px solid var(--border)}
+.claim-link .cl-assets{display:flex;gap:4px;flex-wrap:wrap}
+.cl-asset{font-size:.68rem;color:var(--accent);font-weight:500}
+
+/* subtree */
+.tree{padding-left:0;list-style:none}
+.tree ul{padding-left:28px;list-style:none;border-left:2px solid var(--border);margin-left:12px}
+.tree li{position:relative;padding:6px 0}
+
+/* assets */
+.asset-list{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.asset{background:var(--accent)18;border:1px solid var(--accent)44;color:var(--accent);padding:6px 14px;border-radius:8px;font-size:.82rem;font-weight:600}
+
+.nav{display:flex;gap:8px;margin-top:12px}
+.nav a{display:inline-block;padding:6px 16px;border-radius:20px;font-size:.82rem;font-weight:500;border:1px solid var(--border);color:var(--muted);background:var(--surface2);transition:all .15s}
+.nav a:hover{color:var(--text);border-color:var(--accent);background:var(--accent)18;text-decoration:none}
+
+footer{border-top:1px solid var(--border);padding:24px 0;text-align:center;color:var(--muted);font-size:.78rem;margin-top:40px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="container">
+    <a href="/claims" class="back">← Back to Claim Hierarchy</a>
+    <div class="nav" style="margin-bottom:16px">
+      <a href="/">Narratives</a>
+      <a href="/claims">Claims</a>
+    </div>
+    <h1>{{ claim.text }}</h1>
+    <div class="hero-meta">
+      <span class="tier-badge" style="background:{{ tier_colors[claim.tier] }}22;color:{{ tier_colors[claim.tier] }}">{{ tier_labels[claim.tier] }}</span>
+      <span class="duration">{{ claim.expected_duration }}</span>
+      <span class="trend trend-{{ claim.trend }}">{{ trend_icons[claim.trend] }} {{ claim.trend }}</span>
+      {% if claim.causal_direction == 'disputed' %}
+      <span class="badge" style="background:var(--yellow)22;color:var(--yellow)">⚠ Disputed Direction</span>
+      {% endif %}
+      {% for ac in claim.asset_classes %}
+      <span class="asset-class">{{ ac }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<main class="container">
+
+  <!-- influence score ring -->
+  <div class="score-hero">
+    <div class="score-ring">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--surface2)" stroke-width="10"/>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="{{ tier_colors[claim.tier] }}" stroke-width="10"
+                stroke-dasharray="{{ (claim.influence_score / 100) * 326.7 }} 326.7"
+                stroke-linecap="round"/>
+      </svg>
+      <div class="center">
+        <span class="num" style="color:{{ tier_colors[claim.tier] }}">{{ claim.influence_score }}</span>
+        <span class="lbl">Influence</span>
+      </div>
+    </div>
+    <div class="score-info">
+      <p>
+        This claim sits at <strong>depth {{ claim.depth }}</strong> in the hierarchy
+        and has <strong>{{ claim.descendant_count }} downstream claim{{ 's' if claim.descendant_count != 1 else '' }}</strong>
+        that depend on it. Its influence magnitude is computed from both position
+        (root claims rank highest) and causal breadth (more downstream dependencies = more influence).
+      </p>
+    </div>
+  </div>
+
+  <!-- key metrics -->
+  <div class="grid4">
+    <div class="mcard">
+      <div class="label">Depth</div>
+      <div class="val">{{ claim.depth }}</div>
+      <div class="sub">{{ 'Root claim' if claim.depth == 0 else 'Level ' + claim.depth|string }}</div>
+    </div>
+    <div class="mcard">
+      <div class="label">Downstream Claims</div>
+      <div class="val" style="color:{{ tier_colors[claim.tier] }}">{{ claim.descendant_count }}</div>
+      <div class="sub">Causal breadth</div>
+    </div>
+    <div class="mcard">
+      <div class="label">Persistence</div>
+      <div class="val">{{ claim.persistence_days }}d</div>
+      <div class="sub">Active duration</div>
+    </div>
+    <div class="mcard">
+      <div class="label">Trend</div>
+      <div class="val">
+        <span class="trend trend-{{ claim.trend }}">{{ trend_icons[claim.trend] }} {{ claim.trend }}</span>
+      </div>
+      <div class="sub">Influence direction</div>
+    </div>
+  </div>
+
+  <!-- parents -->
+  {% if parents %}
+  <div class="section">
+    <h3>↑ Parent Claims (This Claim Derives From)</h3>
+    {% for p in parents %}
+    <a href="/claim/{{ p.id }}" class="claim-link">
+      <span class="cl-text">{{ p.text }}</span>
+      <span class="cl-score" style="color:{{ tier_colors[p.tier] }}">{{ p.influence_score }}</span>
+      <span class="cl-assets">{% for a in p.related_assets[:3] %}<span class="cl-asset">{{ a }}</span>{% endfor %}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- children -->
+  {% if children %}
+  <div class="section">
+    <h3>↓ Direct Consequences</h3>
+    {% for c in children %}
+    <a href="/claim/{{ c.id }}" class="claim-link">
+      <span class="cl-text">{{ c.text }}</span>
+      <span class="cl-score" style="color:{{ tier_colors[c.tier] }}">{{ c.influence_score }}</span>
+      <span class="cl-assets">{% for a in c.related_assets[:3] %}<span class="cl-asset">{{ a }}</span>{% endfor %}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- full subtree -->
+  {% if subtree and subtree.children %}
+  <div class="section">
+    <h3>Full Subtree</h3>
+    <ul class="tree">
+      {% for child in subtree.children %}
+      <li>
+        <a href="/claim/{{ child.id }}" class="claim-link">
+          <span class="cl-text">{{ child.text }}</span>
+          <span class="cl-score" style="color:{{ tier_colors[child.tier] }}">{{ child.influence_score }}</span>
+        </a>
+        {% if child.children %}
+        <ul>
+          {% for gc in child.children %}
+          <li>
+            <a href="/claim/{{ gc.id }}" class="claim-link">
+              <span class="cl-text">{{ gc.text }}</span>
+              <span class="cl-score" style="color:{{ tier_colors[gc.tier] }}">{{ gc.influence_score }}</span>
+            </a>
+            {% if gc.children %}
+            <ul>
+              {% for ggc in gc.children %}
+              <li>
+                <a href="/claim/{{ ggc.id }}" class="claim-link">
+                  <span class="cl-text">{{ ggc.text }}</span>
+                  <span class="cl-score" style="color:{{ tier_colors[ggc.tier] }}">{{ ggc.influence_score }}</span>
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- related assets -->
+  {% if claim.related_assets %}
+  <div class="section">
+    <h3>Related Assets</h3>
+    <div class="asset-list">
+      {% for a in claim.related_assets %}<span class="asset">{{ a }}</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</main>
+
+<footer>
+  <div class="container">Narratives v0.1.0 — Hierarchical Claim Architecture</div>
+</footer>
+
+</body>
+</html>
