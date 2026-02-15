@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crypto Analytics Demo</title>
+    <!-- Import a modern, premium font -->
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Global styles: light premium palette and modern typography */
+      :root {
+        --bg-color: #f8f9fc;
+        --card-bg: #ffffff;
+        --text-color: #1f2937;
+        --accent-color: #6366f1;
+        --muted-color: #6b7280;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+      }
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        padding: 2rem;
+        line-height: 1.6;
+      }
+      h1, h2 {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      h1 {
+        font-size: 2rem;
+        color: var(--accent-color);
+      }
+      h2 {
+        font-size: 1.25rem;
+        color: var(--text-color);
+      }
+      p {
+        color: var(--muted-color);
+        margin-bottom: 1.5rem;
+      }
+      .card {
+        background-color: var(--card-bg);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow);
+      }
+      pre {
+        background-color: #f1f5f9;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        overflow-x: auto;
+        font-size: 0.875rem;
+      }
+      @media (min-width: 768px) {
+        .container {
+          max-width: 768px;
+          margin: 0 auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Crypto Analytics Demo</h1>
+      <p>
+        This prototype uses a simple FastAPI backend to fetch price, on‑chain
+        and developer metrics. Start the server at
+        <code>http://localhost:8000</code> before loading this page.
+      </p>
+      <div class="card">
+        <h2>Binance 24h ticker statistics (BTCUSDT)</h2>
+        <pre id="price">Loading...</pre>
+      </div>
+      <div class="card">
+        <h2>Etherscan daily new addresses (last week)</h2>
+        <pre id="newAddresses">Loading...</pre>
+      </div>
+      <div class="card">
+        <h2>GitHub weekly commit activity (zillionsHQ/narratives)</h2>
+        <pre id="githubActivity">Loading...</pre>
+      </div>
+    </div>
+    <script>
+      async function fetchJSON(url) {
+        const resp = await fetch(url);
+        return await resp.json();
+      }
+      async function loadData() {
+        try {
+          const price = await fetchJSON("http://localhost:8000/metrics/price/BTCUSDT");
+          document.getElementById("price").textContent = JSON.stringify(price, null, 2);
+        } catch (err) {
+          document.getElementById("price").textContent = "Error fetching price: " + err;
+        }
+        try {
+          const today = new Date();
+          const end = today.toISOString().split("T")[0];
+          const startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7);
+          const start = startDate.toISOString().split("T")[0];
+          const newAddrs = await fetchJSON(
+            `http://localhost:8000/metrics/daily_new_addresses?startdate=${start}&enddate=${end}`
+          );
+          document.getElementById("newAddresses").textContent = JSON.stringify(newAddrs, null, 2);
+        } catch (err) {
+          document.getElementById("newAddresses").textContent = "Error fetching on‑chain data: " + err;
+        }
+        try {
+          const ghData = await fetchJSON(
+            "http://localhost:8000/metrics/github_activity/zillionsHQ/narratives"
+          );
+          document.getElementById("githubActivity").textContent = JSON.stringify(ghData, null, 2);
+        } catch (err) {
+          document.getElementById("githubActivity").textContent = "Error fetching GitHub data: " + err;
+        }
+      }
+      loadData();
+    </script>
+  </body>
+</html>
