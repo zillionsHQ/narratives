@@ -199,7 +199,9 @@ class ClaimGraph:
         for claim in self.claims.values():
             claim.descendant_count = len(self.get_subtree_ids(claim.id))
 
-        max_desc = max((c.descendant_count for c in self.claims.values()), default=1)
+        max_desc = max(
+            (c.descendant_count for c in self.claims.values()), default=1
+        )
         if max_desc == 0:
             max_desc = 1
 
